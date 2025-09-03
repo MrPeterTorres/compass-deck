@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Empowered Compass - Topic Choice</title>
+  <title>Empowered Compass - Deck Builder</title>
 
   <!-- Font Awesome icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkfG3j6S0Z8a2iZ9YkZbKxQyY7b5V6Wb8wIYHh1i4w8z0P4nQ8N+FQ7wQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -15,8 +15,8 @@
 </head>
 <body>
   <header class="app-header">
-    <h1>Topic Choice</h1>
-    <p class="hint">Choose the topic you care more about</p>
+    <h1>Deck Builder</h1>
+    <p class="hint">Pick two topics from five each hand</p>
   </header>
 
   <main class="layout">
@@ -28,9 +28,17 @@
         </div>
       </div>
 
-      <div id="cardArea" class="card-area">
-        <!-- Cards will render here -->
+      <div id="cardArea" class="card-area" aria-live="polite">
         <div class="empty">Loading…</div>
+      </div>
+
+      <div class="controls">
+        <div class="piles">
+          <span id="deckLeft" class="pile">Deck: 0</span>
+          <span id="keepCount" class="pile">Keep: 0</span>
+          <span id="discardCount" class="pile">Discard: 0</span>
+          <span id="roundNum" class="pile">Round: 1</span>
+        </div>
       </div>
     </section>
 

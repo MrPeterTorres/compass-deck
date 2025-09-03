@@ -296,4 +296,49 @@ body {
     width: 320px !important;
     height: 320px !important;
   }
+}/* --- Deck Builder additions --- */
+.five-card-container {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  width: 100%;
 }
+
+@media (max-width: 1100px) {
+  .five-card-container { grid-template-columns: repeat(4, 1fr); }
+}
+@media (max-width: 900px) {
+  .five-card-container { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 700px) {
+  .five-card-container { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 500px) {
+  .five-card-container { grid-template-columns: 1fr; }
+}
+
+.card.selectable { cursor: pointer; }
+.card.selected {
+  transform: scale(1.02);
+  box-shadow: 0 0 0 3px var(--accent), 0 20px 32px rgba(0,0,0,0.5);
+  background: var(--hover);
+}
+
+/* Simple keep/discard animations */
+.card.to-keep { animation: keepPop 350ms ease forwards; }
+.card.to-discard { animation: discardFade 350ms ease forwards; }
+
+@keyframes keepPop {
+  0% { transform: scale(1); opacity: 1; }
+  60% { transform: scale(1.06); }
+  100% { transform: scale(1.02); opacity: 1; }
+}
+
+@keyframes discardFade {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0.96); opacity: 0; }
+}
+
+.controls { display: flex; align-items: center; justify-content: space-between; }
+.piles { display: flex; gap: 12px; color: var(--muted); font-size: 14px; }
+.pile { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 999px; padding: 6px 10px; }

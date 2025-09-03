@@ -1,9 +1,11 @@
-// ===== Config =====
+﻿// ===== Config =====
 const CONFIG = {
   MAX_SPOKES: 8,
-  CONFIRMATION_KEEPS: 2,   // Reduced from 3 to 2
+  CONFIRMATION_KEEPS: 2,   // Needs 2 keeps to qualify
   EVICTION_SKIPS: 3,       // 3 skips on a spoke evicts it
-  TOTAL_TOPICS: 50
+  TOTAL_TOPICS: 50,
+  HAND_SIZE: 5,
+  PICKS_PER_HAND: 2
 };
 
 // ===== Topic pool (50) =====
@@ -48,43 +50,43 @@ const TOPICS = [
   { title: "TikTok and Foreign-Owned Social Media Regulation", icon: "fa-brands fa-tiktok", desc: "Data, youth and security" },
   { title: "Misinformation and Algorithms in Democracy", icon: "fa-solid fa-diagram-project", desc: "Ranking, reach and trust" },
   { title: "Pandemic Preparedness and Vaccine Mandates", icon: "fa-solid fa-syringe", desc: "Readiness and public health" },
-  { title: "Water Access and Drought Management", icon: "fa-solid fa-faucet-drip", desc: "Scarcity and rights" },
-  { title: "Food Security and Agricultural Policy", icon: "fa-solid fa-wheat-awn", desc: "Prices, farms and aid" },
-  { title: "Natural Disasters and Climate Resilience Funding", icon: "fa-solid fa-house-flood-water", desc: "Rebuild and insure risk" },
+  { title: "Water Access and Drought Management", icon: "fa-solid fa-droplet", desc: "Scarcity and conservation" },
+  { title: "Food Security and Agricultural Policy", icon: "fa-solid fa-bowl-food", desc: "Farms, prices and aid" },
+  { title: "Natural Disasters and Climate Resilience Funding", icon: "fa-solid fa-house-flood-water", desc: "Recovery and prevention" },
   { title: "January 6th and the 2020 Election", icon: "fa-solid fa-flag-usa", desc: "Accountability and norms" },
-  { title: "Term Limits and Congressional Reform", icon: "fa-solid fa-timeline", desc: "Turnover and rules" },
-  { title: "National Debt and Deficit Spending", icon: "fa-solid fa-scale-unbalanced-flip", desc: "Debt paths and priorities" },
-  { title: "Healthcare for Veterans and Military Support", icon: "fa-solid fa-ribbon", desc: "Care access and benefits" },
-  { title: "Space Exploration and Federal Investment", icon: "fa-solid fa-moon", desc: "Science and spinoffs" },
-  { title: "Cryptocurrency and Digital Currency Regulation", icon: "fa-solid fa-coins", desc: "Innovation and consumer protection" },
-  { title: "Social Security and Medicare Reform", icon: "fa-solid fa-hand-holding-heart", desc: "Long-term sustainability and benefits" }
+  { title: "Term Limits and Congressional Reform", icon: "fa-solid fa-gavel", desc: "Incentives and turnover" },
+  { title: "National Debt and Deficit Spending", icon: "fa-solid fa-scale-balanced", desc: "Tradeoffs and growth" },
+  { title: "Healthcare for Veterans and Military Support", icon: "fa-solid fa-medal", desc: "Benefits and care" },
+  { title: "Space Exploration and Federal Investment", icon: "fa-solid fa-rocket", desc: "Science and industry" },
+  { title: "Cryptocurrency and Digital Currency Regulation", icon: "fa-solid fa-coins", desc: "Innovation and risk" },
+  { title: "Social Security and Medicare Reform", icon: "fa-solid fa-people-group", desc: "Solvency and promises" }
 ];
 
-// ===== One-word labels =====
+// Short labels for radar
 const LABEL = {
   "Healthcare Access and Affordability": "Healthcare",
   "Climate Change and Environmental Protection": "Climate",
-  "Economic Inequality and Job Security": "Economy",
+  "Economic Inequality and Job Security": "Inequality",
   "Education Quality and Funding": "Education",
-  "Gun Laws and Public Safety": "Guns",
+  "Gun Laws and Public Safety": "PublicSafety",
   "Reproductive Rights and Abortion Access": "Reproductive",
   "Policing and Criminal Justice Reform": "Justice",
   "Immigration Policy": "Immigration",
-  "Civil Rights and Social Justice": "Rights",
+  "Civil Rights and Social Justice": "CivilRights",
   "Taxation and Government Spending": "Taxes",
   "Affordable Housing and Homelessness": "Housing",
   "Voting Rights and Electoral Integrity": "Voting",
   "Foreign Policy and National Security": "Security",
-  "Infrastructure and Transportation": "Transit",
+  "Infrastructure and Transportation": "Infrastructure",
   "Technology and Data Privacy": "Privacy",
-  "Corporate Regulation and Consumer Protection": "Consumers",
+  "Corporate Regulation and Consumer Protection": "Consumer",
   "Wages and Labor Rights": "Labor",
-  "Support for Small Businesses and Entrepreneurship": "Business",
-  "Mental Health and Addiction Services": "Mental",
-  "Campaign Finance Reform": "Campaigns",
-  "Policing in Schools": "SchoolPolicing",
+  "Support for Small Businesses and Entrepreneurship": "SmallBiz",
+  "Mental Health and Addiction Services": "MentalHealth",
+  "Campaign Finance Reform": "CampaignFinance",
+  "Policing in Schools": "SchoolSafety",
   "Government Role in Childcare and Parental Leave": "Childcare",
-  "Internet Access and Digital Equity": "Internet",
+  "Internet Access and Digital Equity": "Broadband",
   "Book Bans and Curriculum Restrictions in Schools": "Curriculum",
   "Religious Freedom and the Role of Religion in Government": "Religion",
   "DEI Programs and Workplace Policy": "DEI",
@@ -92,10 +94,10 @@ const LABEL = {
   "U.S. Military Support to Ukraine": "Ukraine",
   "U.S.-China Relations and Taiwan": "China",
   "Defense Treaties and NATO Commitments": "NATO",
-  "Foreign Aid and International Development": "Aid",
+  "Foreign Aid and International Development": "ForeignAid",
   "Global Refugee and Asylum Policies": "Refugees",
   "American Tariff Policy": "Tariffs",
-  "Supply Chain Resilience and Domestic Manufacturing": "Supply",
+  "Supply Chain Resilience and Domestic Manufacturing": "SupplyChain",
   "Universal Basic Income (UBI)": "UBI",
   "Artificial Intelligence and Job Displacement": "AI",
   "Online Censorship and Platform Accountability": "Platforms",
@@ -118,14 +120,17 @@ const oneWordLabel = t => LABEL[t] || "Topic";
 // ===== State =====
 const state = {
   pool: [],
-  pairQueue: [],
-  currentPairIndex: 0,
+  deck: [],
+  keepPile: [],
+  discardPile: [],
+  hand: [],
+  selectedIds: new Set(),
+  round: 1,
+  roundDeckTotal: 0,
   radar: null,
   finalRadar: null,
   spokes: Array(CONFIG.MAX_SPOKES).fill(null),
-  labelsLive: Array(CONFIG.MAX_SPOKES).fill(""),
-  challengerMode: false,
-  totalPairsProcessed: 0
+  labelsLive: Array(CONFIG.MAX_SPOKES).fill("")
 };
 
 // ===== DOM =====
@@ -137,20 +142,22 @@ const els = {
   summary: document.getElementById('summary'),
   finalRadar: document.getElementById('finalRadar'),
   summaryList: document.getElementById('summaryList'),
-  restartBtn: document.getElementById('restartBtn')
+  restartBtn: document.getElementById('restartBtn'),
+  deckLeft: document.getElementById('deckLeft'),
+  keepCount: document.getElementById('keepCount'),
+  discardCount: document.getElementById('discardCount'),
+  roundNum: document.getElementById('roundNum')
 };
 
 // ===== Init =====
 document.addEventListener('DOMContentLoaded', () => {
   bootstrapPool();
-  createInitialPairs();
-  updateProgress();
-  renderCurrentPair();
+  startRound(1);
   initRadar();
   bindControls();
 });
 
-// ===== Pool & Pairing =====
+// ===== Pool & Deck =====
 function bootstrapPool() {
   state.pool = shuffle(TOPICS.map((t, i) => ({
     ...t,
@@ -163,222 +170,170 @@ function bootstrapPool() {
   })));
 }
 
-function createInitialPairs() {
-  const topics = [...state.pool];
-  const pairs = [];
-  
-  // Create pairs from shuffled topics - exactly 25 pairs for 50 topics
-  for (let i = 0; i < topics.length - 1; i += 2) {
-    pairs.push([topics[i], topics[i + 1]]);
-  }
-  
-  state.pairQueue = pairs;
-  state.challengerMode = false;
+function startRound(n) {
+  state.round = n;
+  state.selectedIds = new Set();
+  state.keepPile = [];
+  state.discardPile = [];
+  state.hand = [];
+  state.deck = n === 1 ? shuffle([...state.pool]) : shuffle([...state.prevKeepPile]);
+  state.roundDeckTotal = state.deck.length;
+  updateProgress();
+  updateCounters();
+  dealHand();
 }
 
-function createChallengerPairs() {
-  const untested = state.pool.filter(t => t.shown === 0);
-  
-  const unconfirmed = state.pool.filter(t => 
-    t.kept > 0 && t.kept < CONFIG.CONFIRMATION_KEEPS && t.onSpokeIndex === -1
-  );
-  
-  const challengers = state.pool.filter(t => 
-    t.kept >= CONFIG.CONFIRMATION_KEEPS && t.onSpokeIndex === -1
-  );
-
-  const pairs = [];
-
-  // First priority: pair untested topics
-  for (let i = 0; i < untested.length - 1; i += 2) {
-    pairs.push([untested[i], untested[i + 1]]);
-  }
-
-  // Second priority: challengers vs vulnerable spoke holders
-  challengers.forEach(challenger => {
-    const vulnerable = findMostVulnerableSpokeHolder();
-    if (vulnerable) {
-      pairs.push([challenger, vulnerable]);
-    }
-  });
-
-  // Third priority: pair unconfirmed topics
-  for (let i = 0; i < unconfirmed.length - 1; i += 2) {
-    pairs.push([unconfirmed[i], unconfirmed[i + 1]]);
-  }
-
-  return shuffle(pairs);
-}
-
-// ===== UI helpers =====
-function updateProgress() {
-  if (!state.challengerMode) {
-    // Initial phase: show pair progress
-    const totalPairs = Math.floor(CONFIG.TOTAL_TOPICS / 2);
-    const current = Math.min(state.currentPairIndex, totalPairs);
-    els.progressText.textContent = `Pair ${current + 1} of ${totalPairs}`;
-    const pct = totalPairs ? ((current + 1) / totalPairs) * 100 : 0;
-    els.barInner.style.width = `${pct}%`;
-  } else {
-    // Challenger phase: show topics tested
-    const totalTested = state.pool.filter(t => t.shown > 0).length;
-    els.progressText.textContent = `${totalTested} of ${CONFIG.TOTAL_TOPICS} topics evaluated`;
-    const pct = (totalTested / CONFIG.TOTAL_TOPICS) * 100;
-    els.barInner.style.width = `${pct}%`;
-  }
-}
-
-function renderCurrentPair() {
-  if (finishConditionMet()) { 
-    showSummary(); 
-    return; 
-  }
-
-  // Check if we need to switch to challenger mode or create new pairs
-  if (state.currentPairIndex >= state.pairQueue.length) {
-    if (!state.challengerMode) {
-      switchToChallengerMode();
-      return;
-    } else {
-      const newPairs = createChallengerPairs();
-      if (newPairs.length === 0) {
-        showSummary();
-        return;
-      }
-      state.pairQueue = newPairs;
-      state.currentPairIndex = 0;
-      updateProgress();
-    }
-  }
-
-  const currentPair = state.pairQueue[state.currentPairIndex];
-  if (!currentPair) {
-    showSummary();
+function dealHand() {
+  if (state.deck.length === 0) {
+    endRound();
     return;
   }
+  const count = Math.min(CONFIG.HAND_SIZE, state.deck.length);
+  state.hand = [];
+  for (let i = 0; i < count; i++) {
+    const t = state.deck.shift();
+    t.shown += 1;
+    state.hand.push(t);
+  }
+  state.selectedIds.clear();
+  renderHand();
+  updateProgress();
+  updateCounters();
+}
 
-  const [topicA, topicB] = currentPair;
-  
-  const isChallenger = (topic) => {
-    return state.challengerMode && 
-           topic.kept >= CONFIG.CONFIRMATION_KEEPS && 
-           topic.onSpokeIndex === -1;
-  };
-
-  const instructionText = state.challengerMode ? 
-    "Choose which topic should remain in your top priorities" : 
-    "Choose the topic you care more about";
-
-  els.cardArea.innerHTML = `
-    <div class="instruction">${instructionText}</div>
-    <div class="two-card-container">
-      <div class="card" data-topic-id="${topicA.id}">
-        ${isChallenger(topicA) ? '<div class="challenger-indicator">!</div>' : ''}
-        <div class="title">
-          <i class="${topicA.icon}" aria-hidden="true"></i>
-          <span>${topicA.title}</span>
-        </div>
-        <div class="subtitle">${topicA.desc}</div>
-      </div>
-      <div class="card" data-topic-id="${topicB.id}">
-        ${isChallenger(topicB) ? '<div class="challenger-indicator">!</div>' : ''}
-        <div class="title">
-          <i class="${topicB.icon}" aria-hidden="true"></i>
-          <span>${topicB.title}</span>
-        </div>
-        <div class="subtitle">${topicB.desc}</div>
-      </div>
+function renderHand() {
+  const instructionText = "Pick two topics from these five";
+  const cardsHtml = state.hand.map(t => `
+    <div class="card selectable" data-topic-id="${t.id}">
+      <div class="title"><i class="${t.icon}" aria-hidden="true"></i><span>${t.title}</span></div>
+      <div class="subtitle">${t.desc}</div>
     </div>
+  `).join('');
+
+  els.cardArea.innerHTML =  `
+    <div class="instruction">${instructionText}</div>
+    <div class="five-card-container">${cardsHtml}</div>
   `;
 
-  // Add click handlers
-  document.querySelectorAll('.card').forEach(card => {
-    card.addEventListener('click', () => {
-      const topicId = parseInt(card.dataset.topicId);
-      const selectedTopic = getById(topicId);
-      const otherTopic = topicId === topicA.id ? topicB : topicA;
-      
-      animateSelection(card, () => {
-        handleChoice(selectedTopic, otherTopic);
-      });
-    });
+  const container = els.cardArea.querySelector('.five-card-container');
+  container.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('click', () => onCardClick(card, container));
   });
 }
 
-function switchToChallengerMode() {
-  state.challengerMode = true;
-  const newPairs = createChallengerPairs();
-  
-  if (newPairs.length === 0) {
+function onCardClick(cardEl, container) {
+  const id = parseInt(cardEl.dataset.topicId);
+  const selected = state.selectedIds.has(id);
+  if (selected) {
+    state.selectedIds.delete(id);
+    cardEl.classList.remove('selected');
+    return;
+  }
+  if (state.selectedIds.size >= CONFIG.PICKS_PER_HAND) return;
+
+  state.selectedIds.add(id);
+  cardEl.classList.add('selected');
+
+  if (state.selectedIds.size === CONFIG.PICKS_PER_HAND) {
+    // Lock further input, run animations, then resolve
+    container.style.pointerEvents = 'none';
+    const selectedCards = Array.from(container.querySelectorAll('.card'))
+      .filter(el => state.selectedIds.has(parseInt(el.dataset.topicId)));
+    const rejectedCards = Array.from(container.querySelectorAll('.card'))
+      .filter(el => !state.selectedIds.has(parseInt(el.dataset.topicId)));
+
+    // Animate
+    setTimeout(() => {
+      selectedCards.forEach(el => el.classList.add('to-keep'));
+      rejectedCards.forEach(el => el.classList.add('to-discard'));
+    }, 50);
+
+    setTimeout(resolveHand, 380);
+  }
+}
+
+function resolveHand() {
+  const selected = state.hand.filter(t => state.selectedIds.has(t.id));
+  const rejected = state.hand.filter(t => !state.selectedIds.has(t.id));
+
+  // Update keeps and timestamps
+  const now = performance.now();
+  selected.forEach(t => {
+    t.kept += 1;
+    if (t.firstKeptAt === Infinity) t.firstKeptAt = now;
+  });
+
+  // Rejected penalty: increment skips for any incumbent on a spoke
+  rejected.forEach(t => {
+    if (t.onSpokeIndex !== -1) {
+      t.onSpokeSkips += 1;
+      if (t.onSpokeSkips >= CONFIG.EVICTION_SKIPS) {
+        evictFromSpoke(t.onSpokeIndex);
+      }
+    }
+  });
+
+  // Placement / replacement policy: snappy
+  selected.forEach(t => {
+    if (t.kept >= CONFIG.CONFIRMATION_KEEPS && t.onSpokeIndex === -1) {
+      const free = firstFreeSpoke();
+      if (free !== -1) {
+        placeOnSpoke(t, free);
+      } else {
+        const vulnerable = findMostVulnerableSpokeHolder();
+        if (vulnerable) {
+          const idx = vulnerable.onSpokeIndex;
+          evictFromSpoke(idx);
+          placeOnSpoke(t, idx);
+        }
+      }
+    }
+  });
+
+  // Move cards to piles
+  state.keepPile.push(...selected);
+  state.discardPile.push(...rejected);
+
+  // Next hand or round end
+  if (state.deck.length > 0) {
+    dealHand();
+  } else {
+    endRound();
+  }
+
+  updateCounters();
+}
+
+function endRound() {
+  // Finish after full round if spokes are full
+  if (spokesFull()) {
     showSummary();
     return;
   }
-  
-  state.pairQueue = newPairs;
-  state.currentPairIndex = 0;
-  updateProgress();
-  renderCurrentPair();
+  // Prepare next round from keep pile, if any
+  if (state.keepPile.length > 0) {
+    state.prevKeepPile = [...state.keepPile];
+    startRound(state.round + 1);
+  } else {
+    // Edge: nothing kept; reshuffle entire pool to avoid dead-end
+    state.prevKeepPile = [...state.pool];
+    startRound(state.round + 1);
+  }
 }
 
-function animateSelection(selectedCard, callback) {
-  selectedCard.classList.add('selected');
-  setTimeout(() => {
-    callback();
-  }, 300);
+// ===== Progress & Counters =====
+function updateProgress() {
+  const used = state.roundDeckTotal - state.deck.length;
+  const total = Math.max(1, state.roundDeckTotal);
+  els.progressText.textContent = `Round ${state.round}: ${used} of ${total} cards`;
+  els.barInner.style.width = `${(used / total) * 100}%`;
 }
 
-function bindControls() {
-  els.restartBtn.addEventListener('click', restart);
-  
-  // Keyboard support
-  window.addEventListener('keydown', e => {
-    if (!els.summary.classList.contains('hidden')) return;
-    const cards = document.querySelectorAll('.card');
-    if (e.key === 'ArrowLeft' && cards[0]) {
-      cards[0].click();
-    } else if (e.key === 'ArrowRight' && cards[1]) {
-      cards[1].click();
-    }
-  });
-}
-
-// ===== Choice handling =====
-function handleChoice(selectedTopic, rejectedTopic) {
-  selectedTopic.shown += 1;
-  selectedTopic.kept += 1;
-  if (selectedTopic.firstKeptAt === Infinity) {
-    selectedTopic.firstKeptAt = performance.now();
-  }
-
-  rejectedTopic.shown += 1;
-
-  // Handle rejected topic if it's on a spoke
-  if (rejectedTopic.onSpokeIndex !== -1) {
-    rejectedTopic.onSpokeSkips += 1;
-    if (rejectedTopic.onSpokeSkips >= CONFIG.EVICTION_SKIPS) {
-      evictFromSpoke(rejectedTopic.onSpokeIndex);
-    }
-  }
-
-  // Handle selected topic placement
-  if (selectedTopic.kept >= CONFIG.CONFIRMATION_KEEPS && selectedTopic.onSpokeIndex === -1) {
-    const free = firstFreeSpoke();
-    if (free !== -1) {
-      placeOnSpoke(selectedTopic, free);
-    } else {
-      // In challenger mode, if the selected topic beat an incumbent
-      if (state.challengerMode && rejectedTopic.onSpokeIndex !== -1) {
-        const spokeIndex = rejectedTopic.onSpokeIndex;
-        evictFromSpoke(spokeIndex);
-        placeOnSpoke(selectedTopic, spokeIndex);
-      }
-    }
-  }
-
-  state.currentPairIndex += 1;
-  state.totalPairsProcessed += 1;
-  updateProgress();
-  renderCurrentPair();
+function updateCounters() {
+  els.deckLeft.textContent = `Deck: ${state.deck.length}`;
+  els.keepCount.textContent = `Keep: ${state.keepPile.length}`;
+  els.discardCount.textContent = `Discard: ${state.discardPile.length}`;
+  els.roundNum.textContent = `Round: ${state.round}`;
 }
 
 // ===== Live radar =====
@@ -454,28 +409,27 @@ function evictFromSpoke(spokeIndex) {
 
 function findMostVulnerableSpokeHolder() {
   let most = null;
-  let bestScore = -1;
-  
+  let bestScore = -Infinity;
   state.spokes.forEach(id => {
     if (id === null) return;
     const topic = getById(id);
-    // Higher skips and lower keeps = more vulnerable
-    const score = topic.onSpokeSkips * 2 - topic.kept;
+    const score = topic.onSpokeSkips * 2 - topic.kept; // higher = more vulnerable
     if (score > bestScore) {
       bestScore = score;
       most = topic;
     }
   });
-  
   return most;
+}
+
+function spokesFull() {
+  return state.spokes.filter(Boolean).length === CONFIG.MAX_SPOKES;
 }
 
 // ===== Summary =====
 function showSummary() {
-  // Winners are whatever is on the spokes at the end
-  const winners = state.spokes
-    .map(id => getById(id))
-    .filter(Boolean);
+  // Winners are whatever is on the spokes at the end of the round
+  const winners = state.spokes.map(id => getById(id)).filter(Boolean);
 
   // If fewer than 8 are filled, pad with best candidates
   while (winners.length < CONFIG.MAX_SPOKES) {
@@ -485,7 +439,7 @@ function showSummary() {
   }
 
   els.summaryList.innerHTML = winners
-    .map(t => `<li><i class="${t.icon}" aria-hidden="true"></i> ${t.title}</li>`)
+    .map(t => <li><i class="" aria-hidden="true"></i> </li>)
     .join('');
 
   // Fixed size to avoid squish
@@ -540,13 +494,6 @@ function showSummary() {
   els.summary.classList.remove('hidden');
 }
 
-// ===== Finish condition =====
-function finishConditionMet() {
-  const allShownOnce = state.pool.every(t => t.shown > 0);
-  const spokesFull = state.spokes.filter(Boolean).length === CONFIG.MAX_SPOKES;
-  return allShownOnce && spokesFull;
-}
-
 // ===== Spoke helpers =====
 function firstFreeSpoke() {
   for (let i = 0; i < CONFIG.MAX_SPOKES; i++) {
@@ -571,25 +518,16 @@ function bestCandidate(excludeIds = []) {
 
 // ===== Restart =====
 function restart() {
-  state.pairQueue = [];
-  state.currentPairIndex = 0;
   state.spokes = Array(CONFIG.MAX_SPOKES).fill(null);
   state.labelsLive = Array(CONFIG.MAX_SPOKES).fill("");
-  state.challengerMode = false;
-  state.totalPairsProcessed = 0;
-
-  bootstrapPool();
-  createInitialPairs();
-
   if (state.radar) {
     state.radar.data.labels = [...state.labelsLive];
     state.radar.data.datasets[0].data = Array(CONFIG.MAX_SPOKES).fill(0);
     state.radar.update('none');
   }
-
   els.summary.classList.add('hidden');
-  updateProgress();
-  renderCurrentPair();
+  bootstrapPool();
+  startRound(1);
 }
 
 // ===== Utils =====
@@ -602,3 +540,8 @@ function shuffle(arr) {
   }
   return arr;
 }
+
+function bindControls() {
+  els.restartBtn.addEventListener('click', restart);
+}
+
