@@ -439,7 +439,7 @@ function showSummary() {
   }
 
   els.summaryList.innerHTML = winners
-    .map(t => <li><i class="" aria-hidden="true"></i> </li>)
+    .map(t => `<li><i class="${t.icon}" aria-hidden="true"></i> ${t.title}</li>`)
     .join('');
 
   // Fixed size to avoid squish
