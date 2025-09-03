@@ -325,15 +325,15 @@ function endRound() {
 function updateProgress() {
   const used = state.roundDeckTotal - state.deck.length;
   const total = Math.max(1, state.roundDeckTotal);
-  els.progressText.textContent = `Round ${state.round}: ${used} of ${total} cards`;
-  els.barInner.style.width = `${(used / total) * 100}%`;
+  if (els.progressText) els.progressText.textContent = `Round ${state.round}: ${used} of ${total} cards`;
+  if (els.barInner) els.barInner.style.width = `${(used / total) * 100}%`;
 }
 
 function updateCounters() {
-  els.deckLeft.textContent = `Deck: ${state.deck.length}`;
-  els.keepCount.textContent = `Keep: ${state.keepPile.length}`;
-  els.discardCount.textContent = `Discard: ${state.discardPile.length}`;
-  els.roundNum.textContent = `Round: ${state.round}`;
+  if (els.deckLeft) els.deckLeft.textContent = `Deck: ${state.deck.length}`;
+  if (els.keepCount) els.keepCount.textContent = `Keep: ${state.keepPile.length}`;
+  if (els.discardCount) els.discardCount.textContent = `Discard: ${state.discardPile.length}`;
+  if (els.roundNum) els.roundNum.textContent = `Round: ${state.round}`;
 }
 
 // ===== Live radar =====
@@ -544,4 +544,5 @@ function shuffle(arr) {
 function bindControls() {
   els.restartBtn.addEventListener('click', restart);
 }
+
 
